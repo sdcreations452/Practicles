@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SD ChemLab | Cathode Ray Tube Simulator</title>
+
+<style>
+  /* ================================
+   10 SECOND SPLASH SCREEN
+================================ */
+
+#splashScreen {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100vh;
+    background: #0b0f19;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+/* Splash hide state */
+#splashScreen.hide {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.splash-content {
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+}
+
+/* Logo */
+.splash-logo {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto 20px;
+}
+
+/* Title */
+.splash-content h1 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+/* Loading text */
+.splash-content p {
+    margin: 8px 0 25px;
+    color: #94a3b8;
+    font-size: 15px;
+}
+
+/* Loading bar */
+.loading-bar {
+    width: 100%;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Progress */
+.loading-progress {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        #00c6ff,
+        #0072ff
+    );
+    border-radius: 10px;
+}
+
+/* Bottom text */
+.loading-text {
+    display: block;
+    margin-top: 12px;
+    color: #64748b;
+    font-size: 13px;
+}
+*{box-sizing:border-box}
+:root{
+ --bg:#050b10;--panel:#0b151d;--panel2:#0e1d27;--line:#23404f;
+ --text:#eef8fc;--muted:#8da6b3;--green:#35ff72;--green2:#16d96b;
+ --cyan:#35d9ff;--yellow:#ffd54a;--red:#ff6675;
+}
+html,body{margin:0;min-height:100%;background:var(--bg)}
+body{
+ background:radial-gradient(circle at 50% 0,#12304255,transparent 40%),var(--bg);
+ color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif
+}
+.header{
+ height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;
+ justify-content:space-between;padding:0 22px;background:#050b10ef;position:sticky;top:0;z-index:20
+}
+.brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:21px}
+.brand img{width:44px;height:44px;object-fit:contain;border-radius:11px; background: white;}
+.brand small{display:block;font-size:9px;color:var(--muted);letter-spacing:.16em;margin-top:2px}
+.badge{font-size:11px;color:var(--green);border:1px solid #35ff7240;background:#35ff720a;padding:7px 10px;border-radius:99px}
+.wrap{max-width:1250px;margin:auto;padding:20px}
+.grid{display:grid;grid-template-columns:minmax(0,1.65fr) 360px;gap:18px}
+.card{
+ background:linear-gradient(150deg,#0c1a23,#071119);border:1px solid var(--line);
+ border-radius:18px;box-shadow:0 18px 55px #0008;overflow:hidden
+}
+.cardtitle{padding:15px 18px;border-bottom:1px solid var(--line);font-weight:800;font-size:15px}
+.sim{padding:14px}
+
+.canvasbox{
+ background:#020608;border:1px solid #294653;border-radius:14px;overflow:hidden;
+ position:relative;line-height:0;touch-action:none
+}
+canvas{display:block;width:100%;height:auto;transform-origin:center center;transition:transform .12s ease}
+
+.fs-btn{
+ position:absolute;top:12px;right:12px;width:42px;height:42px;background:#000000aa;
+ border:1px solid #4a6a7a;border-radius:8px;padding:8px;cursor:pointer;color:var(--text);
+ display:flex;align-items:center;justify-content:center;transition:.2s;z-index:1000
+}
+.fs-btn:hover{background:#000000ee;border-color:var(--cyan);color:var(--cyan)}
+.fs-btn svg{width:20px;height:20px}
+
+.zoom-controls{
+ position:absolute;top:12px;left:12px;display:none;gap:6px;z-index:1001;line-height:normal
+}
+.canvasbox.fullscreen-mode .zoom-controls,
+.canvasbox:fullscreen .zoom-controls { display:flex; }
+
+.zoom-controls button{
+ flex:none;width:40px;height:40px;padding:0;border-radius:9px;background:#000000cc;
+ border:1px solid #4a6a7a;color:#fff;font-size:20px;font-weight:700;cursor:pointer
+}
+.zoom-controls button:hover{border-color:var(--cyan);color:var(--cyan);background:#07141c}
+#zoomLevel{
+ position:absolute;top:45px;left:0;white-space:nowrap;background:#000000cc;
+ border:1px solid #294653;border-radius:6px;padding:4px 7px;font-size:10px;color:#9db1ba
+}
+
+.canvasbox.fullscreen-mode{
+ position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;
+ z-index:999999!important;border-radius:0!important;border:none!important;background:#020608!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ padding:20px!important;overflow:hidden!important
+}
+.canvasbox.fullscreen-mode canvas{
+ width:100%!important;height:auto!important;max-width:none!important;flex:none!important
+}
+.canvasbox:fullscreen{
+ background:#020608;border:none;border-radius:0;display:flex;align-items:center;justify-content:center;
+ padding:20px;overflow:hidden
+}
+.canvasbox:fullscreen canvas{width:100%;height:auto}
+
+.note{padding:9px 4px 0;color:var(--muted);font-size:11px;line-height:1.5}
+.controls .section{padding:15px 17px;border-bottom:1px solid var(--line)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.label{font-weight:800;font-size:13px}.sub{color:var(--muted);font-size:10px;margin-top:3px}
+.value{color:var(--green);font-weight:900}
+input[type=range]{width:100%;margin-top:12px;accent-color:var(--green)}
+.switch{width:52px;height:29px;border-radius:99px;background:#182832;border:1px solid #34505e;position:relative;cursor:pointer;flex:none}
+.switch i{position:absolute;width:21px;height:21px;left:3px;top:3px;border-radius:50%;background:#71828b;transition:.2s}
+.switch.on{background:#0b4b28;border-color:#35ff72}.switch.on i{left:27px;background:#35ff72;box-shadow:0 0 13px #35ff72}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:14px 17px}
+.metric{border:1px solid var(--line);border-radius:11px;background:#061017;padding:10px}
+.metric span{display:block;color:var(--muted);font-size:10px;margin-bottom:4px}.metric b{font-size:14px}
+.status{margin:0 17px 14px;padding:10px;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:11px}
+.lamp{display:inline-block;width:8px;height:8px;border-radius:50%;background:#65737c;margin-right:7px}
+.status.active{color:#b8ffc9;border-color:#35ff7245}.status.active .lamp{background:#35ff72;box-shadow:0 0 10px #35ff72}
+.actions{display:flex;gap:8px;padding:15px 17px;border-bottom:1px solid var(--line)}
+button{flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:#10232e;color:var(--text);font-weight:800;cursor:pointer}
+button:hover{background:#153342}button.primary{background:#0b3a20;border-color:#208d4b;color:#9affb7}
+.info{grid-column:1/-1;padding:15px 18px;color:var(--muted);font-size:12px;line-height:1.65}
+
+@media(max-width:900px){
+ .grid{grid-template-columns:1fr}.info{grid-column:auto}.badge{display:none}
+}
+@media(max-width:600px){
+ .header{padding:0 12px}.brand{font-size:17px}.brand img{width:38px;height:38px}
+ .wrap{padding:10px}.canvasbox{border-radius:12px}
+ .zoom-controls button{width:38px;height:38px}
+}
+</style>
+</head>
+
+<body>
+  <!-- 10 SECOND LOADING SPLASH SCREEN -->
+<div id="splashScreen">
+    <div class="splash-content">
+        <img src="logo.png" alt="Logo" class="splash-logo">
+
+        <h1>SD ChemLab</h1>
+        <p>Loading...</p>
+
+        <div class="loading-bar">
+            <div class="loading-progress"></div>
+        </div>
+
+        <span class="loading-text">Please wait...</span>
+    </div>
+</div>
+<header class="header">
+  <div class="brand">
+    <img id="logo" src="logo.png" alt="SD ChemLab Logo">
+    <div>SD ChemLab<small>POWERED BY SD CREATIONS</small></div>
+  </div>
+  <div class="badge">2D SIMULATOR</div>
+</header>
+
+<main class="wrap">
+<div class="grid">
+
+<section class="card">
+ <div class="cardtitle">කැතෝඩ කිරණ පරීක්ෂාව</div>
+
+ <div class="sim">
+  <div class="canvasbox" id="cbox">
+
+   <div class="zoom-controls" aria-label="Zoom controls">
+    <button id="zoomOut" title="Zoom Out" aria-label="Zoom Out">−</button>
+    <button id="zoomReset" title="Reset Zoom" aria-label="Reset Zoom">↺</button>
+    <button id="zoomIn" title="Zoom In" aria-label="Zoom In">+</button>
+    <div id="zoomLevel">100%</div>
+   </div>
+
+   <button id="fsBtn" class="fs-btn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round">
+     <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+     <path d="M16 3h3a2 2 0 0 1 2 2v3"></path>
+     <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+     <path d="M8 21H5a2 2 0 0 1-2-2v-3"></path>
+    </svg>
+   </button>
+
+   <canvas id="crt" width="1280" height="720"></canvas>
+  </div>
+
+  <div class="note">
+   Green dots are electrons. The cyan wire connects the negative terminal to the cathode (−),
+   while the red wire connects the positive terminal to the anode (+). The electron beam travels
+   from the cathode toward the anode and fluorescent screen.
+  </div>
+ </div>
+</section>
+
+<aside class="card controls">
+ <div class="cardtitle">Live Controls</div>
+
+ <div class="actions">
+  <button class="primary" id="power">Turn ON</button>
+  <button id="reset">Reset</button>
+ </div>
+
+ <div class="section">
+  <div class="row">
+   <div><div class="label">Accelerating Voltage</div><div class="sub">High-voltage supply</div></div>
+   <div class="value"><span id="vv">0.0</span> kV</div>
+  </div>
+  <input id="voltage" type="range" min="0" max="20" value="0" step=".1">
+ </div>
+
+ <div class="section">
+  <div class="row">
+   <div><div class="label">Vacuum</div><div class="sub">Evacuated tube</div></div>
+   <div class="switch" id="vacuum"><i></i></div>
+  </div>
+ </div>
+
+ <div class="section">
+  <div class="row">
+   <div><div class="label">Electric Deflection</div><div class="sub">Upper / lower plates</div></div>
+   <div class="switch" id="electric"><i></i></div>
+  </div>
+ </div>
+
+ <div class="section">
+  <div class="row">
+   <div><div class="label">Magnetic Deflection</div><div class="sub">Magnetic field coils</div></div>
+   <div class="switch" id="magnetic"><i></i></div>
+  </div>
+ </div>
+
+ <div class="section">
+  <div class="row">
+   <div><div class="label">Spinning Wheel</div><div class="sub">Rotates only while beam is active</div></div>
+   <div class="switch" id="wheel"><i></i></div>
+  </div>
+ </div>
+
+ <div class="metrics">
+  <div class="metric"><span>Electron speed</span><b id="speed">0 m/s</b></div>
+  <div class="metric"><span>Beam displacement</span><b id="pos">0.0 mm</b></div>
+  <div class="metric"><span>Deflection angle</span><b id="angle">0.0°</b></div>
+  <div class="metric"><span>Tube state</span><b id="state">OFF</b></div>
+ </div>
+
+ <div class="status" id="status">
+  <span class="lamp"></span><span id="stext">OFF — Vacuum and voltage are required.</span>
+ </div>
+</aside>
+
+<div class="card info">
+ <b style="color:#fff">Simulator model:</b>
+ The negative terminal of the high-voltage supply is connected to the cathode (−),
+ and the positive terminal is connected to the anode (+). When Vacuum + Voltage + Beam
+ are ON, electrons animate from the cathode through the anode toward the fluorescent screen.
+ Electric and magnetic controls visibly bend the beam. The measurement wheel remains stationary
+ until the electron beam is active.
+</div>
+
+</div>
+</main>
+
+<script>
+"use strict";
+
+/* =========================================================
+   ELEMENTS / STATE
+========================================================= */
+const c = document.getElementById("crt");
+const x = c.getContext("2d");
+const cbox = document.getElementById("cbox");
+
+const W = c.width;
+const H = c.height;
+
+const $ = id => document.getElementById(id);
+
+const S = {
+  v: 0,
+  vacuum: false,
+  electric: false,
+  magnetic: false,
+  wheel: false,
+  beam: false,
+  t: 0,
+  parts: []
+};
+
+/* =========================================================
+   ZOOM
+========================================================= */
+let zoom = 1;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 2.5;
+const ZOOM_STEP = 0.15;
+
+function updateZoom(){
+  zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
+  c.style.transform = `scale(${zoom})`;
+  $("zoomLevel").textContent = Math.round(zoom * 100) + "%";
+}
+
+function zoomIn(){
+  zoom += ZOOM_STEP;
+  updateZoom();
+}
+
+function zoomOut(){
+  zoom -= ZOOM_STEP;
+  updateZoom();
+}
+
+function zoomReset(){
+  zoom = 1;
+  updateZoom();
+}
+
+$("zoomIn").addEventListener("click", zoomIn);
+$("zoomOut").addEventListener("click", zoomOut);
+$("zoomReset").addEventListener("click", zoomReset);
+
+function checkIsFullscreen() {
+    return cbox.classList.contains("fullscreen-mode") || document.fullscreenElement === cbox;
+}
+
+/* Mouse wheel zoom in fullscreen */
+cbox.addEventListener("wheel", function(e){
+  if(!checkIsFullscreen()) return;
+  e.preventDefault();
+  if(e.deltaY < 0) zoomIn();
+  else zoomOut();
+}, {passive:false});
+
+/* Pinch zoom on touch screens */
+let pinchStartDistance = null;
+let pinchStartZoom = 1;
+
+cbox.addEventListener("touchstart", function(e){
+  if(!checkIsFullscreen()) return;
+  if(e.touches.length === 2){
+    pinchStartDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    pinchStartZoom = zoom;
+  }
+}, {passive:true});
+
+cbox.addEventListener("touchmove", function(e){
+  if(!checkIsFullscreen()) return;
+  if(e.touches.length === 2 && pinchStartDistance){
+    e.preventDefault();
+    const distance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    zoom = pinchStartZoom * (distance / pinchStartDistance);
+    updateZoom();
+  }
+}, {passive:false});
+
+cbox.addEventListener("touchend", function(e){
+  if(e.touches.length < 2) pinchStartDistance = null;
+}, {passive:true});
+
+/* =========================================================
+   FULLSCREEN (FIXED)
+========================================================= */
+$("fsBtn").addEventListener("click", async () => {
+  const isCSSFullscreen = cbox.classList.contains("fullscreen-mode");
+  const isNativeFullscreen = document.fullscreenElement === cbox;
+
+  if (!isNativeFullscreen && !isCSSFullscreen) {
+    // Enter Fullscreen
+    cbox.classList.add("fullscreen-mode");
+    if (cbox.requestFullscreen) {
+      try {
+        await cbox.requestFullscreen();
+      } catch (err) {
+        console.warn("Native fullscreen unavailable; using CSS fallback.", err);
+      }
+    }
+  } else {
+    // Exit Fullscreen
+    cbox.classList.remove("fullscreen-mode");
+    if (document.exitFullscreen && isNativeFullscreen) {
+      try {
+        await document.exitFullscreen();
+      } catch (err) {
+        console.warn("Error exiting native fullscreen", err);
+      }
+    }
+  }
+  updateZoom();
+});
+
+document.addEventListener("fullscreenchange", () => {
+  if(document.fullscreenElement !== cbox){
+    cbox.classList.remove("fullscreen-mode");
+  } else {
+    cbox.classList.add("fullscreen-mode");
+  }
+  updateZoom();
+});
+
+/* =========================================================
+   SWITCH / STATUS
+========================================================= */
+function sw(id, key){
+  $(id).classList.toggle("on", S[key]);
+}
+
+function beamActive(){
+  return S.beam && S.vacuum && S.v > 0;
+}
+
+function status(){
+  const active = beamActive();
+
+  $("state").textContent = active ? "ON" : "OFF";
+  $("status").classList.toggle("active", active);
+  $("power").textContent = S.beam ? "Turn OFF" : "Turn ON";
+
+  if(!S.vacuum){
+    $("stext").textContent = "OFF — Turn Vacuum ON first.";
+  }else if(S.v <= 0){
+    $("stext").textContent = "Vacuum ON — increase voltage.";
+  }else if(!S.beam){
+    $("stext").textContent = "Ready — press Turn ON.";
+  }else{
+    $("stext").textContent = "Electron beam ACTIVE — electrons are moving.";
+  }
+}
+
+/* =========================================================
+   CONTROLS
+========================================================= */
+$("voltage").addEventListener("input", e => {
+  S.v = Number(e.target.value);
+  $("vv").textContent = S.v.toFixed(1);
+  status();
+});
+
+["vacuum","electric","magnetic","wheel"].forEach(key => {
+  $(key).addEventListener("click", () => {
+    S[key] = !S[key];
+    sw(key, key);
+    status();
+  });
+});
+
+$("power").addEventListener("click", () => {
+  S.beam = !S.beam;
+  status();
+});
+
+$("reset").addEventListener("click", () => {
+  S.v = 0;
+  S.vacuum = false;
+  S.electric = false;
+  S.magnetic = false;
+  S.wheel = false;
+  S.beam = false;
+  S.t = 0;
+  S.parts = [];
+
+  $("voltage").value = 0;
+  $("vv").textContent = "0.0";
+
+  ["vacuum","electric","magnetic","wheel"].forEach(key => sw(key,key));
+
+  zoomReset();
+  status();
+});
+
+/* =========================================================
+   DRAW HELPERS
+========================================================= */
+function rr(a,b,w,h,r,fill,stroke,lw=3){
+  x.beginPath();
+  x.roundRect(a,b,w,h,r);
+  if(fill){
+    x.fillStyle = fill;
+    x.fill();
+  }
+  if(stroke){
+    x.lineWidth = lw;
+    x.strokeStyle = stroke;
+    x.stroke();
+  }
+}
+
+function arrow(a,b,d,e,col="#91aab5",lw=3){
+  const q = Math.atan2(e-b,d-a);
+  const L = 12;
+
+  x.strokeStyle = col;
+  x.fillStyle = col;
+  x.lineWidth = lw;
+
+  x.beginPath();
+  x.moveTo(a,b);
+  x.lineTo(d,e);
+  x.stroke();
+
+  x.beginPath();
+  x.moveTo(d,e);
+  x.lineTo(d-L*Math.cos(q-.45), e-L*Math.sin(q-.45));
+  x.lineTo(d-L*Math.cos(q+.45), e-L*Math.sin(q+.45));
+  x.closePath();
+  x.fill();
+}
+
+/* =========================================================
+   DRAW SIMULATOR
+========================================================= */
+function draw(){
+  x.clearRect(0,0,W,H);
+  x.fillStyle = "#020608";
+  x.fillRect(0,0,W,H);
+
+  /* Grid */
+  x.strokeStyle = "#0b1c24";
+  x.lineWidth = 1;
+
+  for(let i=0;i<W;i+=50){
+    x.beginPath();
+    x.moveTo(i,0);
+    x.lineTo(i,H);
+    x.stroke();
+  }
+
+  for(let i=0;i<H;i+=50){
+    x.beginPath();
+    x.moveTo(0,i);
+    x.lineTo(W,i);
+    x.stroke();
+  }
+
+  /* Tube */
+  const ty = 285, th = 190, left = 145, right = 1125;
+
+  rr(left,ty,right-left,th,95,"#09151b","#6b858f",5);
+  rr(left+8,ty+8,right-left-16,th-16,87,null,"#ffffff17",2);
+
+  /* Tube internal center line */
+  x.strokeStyle = "#ffffff0d";
+  x.lineWidth = 1;
+  x.beginPath();
+  x.moveTo(160,380);
+  x.lineTo(1110,380);
+  x.stroke();
+
+  /* Fluorescent screen */
+  x.fillStyle = "#071b10";
+  x.strokeStyle = "#9bb3a5";
+  x.lineWidth = 3;
+
+  x.beginPath();
+  x.arc(1030,380,75,0,Math.PI*2);
+  x.fill();
+  x.stroke();
+
+  x.strokeStyle = "#205237";
+  x.lineWidth = 1;
+
+  [25,50].forEach(r=>{
+    x.beginPath();
+    x.arc(1030,380,r,0,Math.PI*2);
+    x.stroke();
+  });
+
+  x.beginPath();
+  x.moveTo(955,380);
+  x.lineTo(1105,380);
+  x.stroke();
+
+  x.beginPath();
+  x.moveTo(1030,305);
+  x.lineTo(1030,455);
+  x.stroke();
+
+  x.fillStyle = "#b9f7ca";
+  x.font = "bold 13px system-ui";
+  x.fillText("FLUORESCENT SCREEN",930,485);
+
+  /* Cathode */
+  x.fillStyle = "#d5e0e4";
+  x.fillRect(205,340,13,80);
+
+  x.fillStyle = "#9eafb6";
+  x.fillRect(182,356,23,48);
+
+  x.fillStyle = "#eef7fa";
+  x.font = "bold 17px system-ui";
+  x.fillText("−  CATHODE",145,325);
+
+  /* Anode */
+  x.fillStyle = "#d5e0e4";
+  x.fillRect(410,332,13,96);
+
+  x.fillStyle = "#9eafb6";
+  x.fillRect(405,340,24,80);
+
+  x.fillStyle = "#eef7fa";
+  x.fillText("+  ANODE",395,325);
+
+  /* Electron direction */
+  x.fillStyle = "#35ff72";
+  x.font = "bold 13px system-ui";
+  x.fillText("ELECTRON FLOW   e⁻  →",230,470);
+
+  /* High voltage supply */
+  rr(530,70,220,115,16,"#101f28","#78909b",3);
+
+  x.fillStyle = "#e9f4f7";
+  x.font = "bold 16px system-ui";
+  x.fillText("HIGH-VOLTAGE SUPPLY",565,100);
+
+  x.fillStyle = "#35ff72";
+  x.font = "bold 15px system-ui";
+  x.fillText(S.v.toFixed(1)+" kV",625,124);
+
+  x.fillStyle = "#35d9ff";
+  x.font = "bold 30px system-ui";
+  x.fillText("−",555,160);
+
+  x.fillStyle = "#ff6675";
+  x.fillText("+",700,160);
+
+  /* Negative wire -> cathode */
+  x.strokeStyle = "#35d9ff";
+  x.lineWidth = 7;
+  x.lineCap = "round";
+
+  x.beginPath();
+  x.moveTo(565,160);
+  x.lineTo(565,225);
+  x.lineTo(160,225);
+  x.lineTo(160,325);
+  x.lineTo(211,325);
+  x.lineTo(211,340);
+  x.stroke();
+
+  x.fillStyle = "#35d9ff";
+  x.font = "bold 11px system-ui";
+  x.fillText("NEGATIVE → CATHODE",245,213);
+
+  arrow(500,225,445,225,"#35d9ff",2);
+  arrow(160,285,160,325,"#35d9ff",2);
+
+  /* Positive wire -> anode */
+  x.strokeStyle = "#ff6675";
+  x.lineWidth = 7;
+
+  x.beginPath();
+  x.moveTo(715,160);
+  x.lineTo(715,245);
+  x.lineTo(455,245);
+  x.lineTo(455,315);
+  x.lineTo(416,315);
+  x.lineTo(416,332);
+  x.stroke();
+
+  x.fillStyle = "#ff7b86";
+  x.font = "bold 11px system-ui";
+  x.fillText("POSITIVE → ANODE",505,237);
+
+  arrow(670,245,610,245,"#ff6675",2);
+  arrow(455,275,455,315,"#ff6675",2);
+
+  /* Connection terminals */
+  x.fillStyle = "#35d9ff";
+  x.beginPath();
+  x.arc(211,340,7,0,Math.PI*2);
+  x.fill();
+
+  x.fillStyle = "#ff6675";
+  x.beginPath();
+  x.arc(416,332,7,0,Math.PI*2);
+  x.fill();
+
+  /* Return path - visually separated from tube wires */
+  x.strokeStyle = "#607984";
+  x.lineWidth = 4;
+  x.lineCap = "round";
+
+  x.beginPath();
+  x.moveTo(211,420);
+  x.lineTo(211,570);
+  x.lineTo(715,570);
+  x.lineTo(715,185);
+  x.stroke();
+
+  x.fillStyle = "#607984";
+  x.font = "12px system-ui";
+  x.fillText("EXTERNAL CIRCUIT / RETURN PATH",420,595);
+
+  /* Electric field */
+  if(S.electric){
+    x.fillStyle = "#2a2410";
+    x.strokeStyle = "#ffd54a";
+    x.lineWidth = 3;
+
+    x.fillRect(515,300,270,12);
+    x.strokeRect(515,300,270,12);
+
+    x.fillRect(515,448,270,12);
+    x.strokeRect(515,448,270,12);
+
+    for(let i=545;i<775;i+=45){
+      arrow(i,320,i,438,"#ffd54a66",2);
+    }
+
+    x.fillStyle = "#ffd54a";
+    x.font = "bold 13px system-ui";
+    x.fillText("ELECTRIC FIELD",600,292);
+  }
+
+  /* Magnetic field */
+  if(S.magnetic){
+    x.strokeStyle = "#35d9ff";
+    x.lineWidth = 3;
+
+    for(let i=805;i<=925;i+=40){
+      x.beginPath();
+      x.arc(i,250,10,0,Math.PI*2);
+      x.stroke();
+
+      x.beginPath();
+      x.moveTo(i-5,245);
+      x.lineTo(i+5,255);
+      x.stroke();
+
+      x.beginPath();
+      x.moveTo(i+5,245);
+      x.lineTo(i-5,255);
+      x.stroke();
+
+      x.beginPath();
+      x.arc(i,510,10,0,Math.PI*2);
+      x.stroke();
+    }
+
+    x.fillStyle = "#35d9ff";
+    x.font = "bold 13px system-ui";
+    x.fillText("MAGNETIC FIELD",815,235);
+  }
+
+  /* Vacuum indicator */
+  x.fillStyle = S.vacuum ? "#35ff72" : "#ff6675";
+  x.font = "bold 14px system-ui";
+  x.fillText(S.vacuum ? "VACUUM  ✓" : "VACUUM  ✕",820,180);
+
+  /* Electron beam */
+  const active = beamActive();
+
+  if(active){
+    if(S.parts.length < 90){
+      for(let i=S.parts.length;i<90;i++){
+        S.parts.push({
+          p: Math.random()*850,
+          phase: Math.random()*9
+        });
+      }
+    }
+
+    const speed = 2 + S.v*.45;
+
+    for(const p of S.parts){
+      p.p += speed;
+      if(p.p > 850) p.p = 0;
+
+      const px = 215 + p.p;
+      const q = Math.max(0,(px-420)/610);
+
+      const def =
+        (S.electric ? S.v*3.0*Math.sin(q*1.4) : 0) +
+        (S.magnetic ? S.v*1.6*q*q : 0);
+
+      const py = 380-def+Math.sin(p.p*.09+p.phase)*2;
+
+      x.save();
+      x.shadowColor = "#35ff72";
+      x.shadowBlur = 12;
+      x.fillStyle = "#35ff72";
+
+      x.beginPath();
+      x.arc(px,py,2.8,0,Math.PI*2);
+      x.fill();
+
+      x.restore();
+    }
+
+    /* Beam glow */
+    x.save();
+    x.strokeStyle = "#35ff7238";
+    x.shadowColor = "#35ff72";
+    x.shadowBlur = 18;
+    x.lineWidth = 5;
+
+    x.beginPath();
+    x.moveTo(215,380);
+
+    for(let px=215;px<1030;px+=15){
+      const q = Math.max(0,(px-420)/610);
+
+      const def =
+        (S.electric ? S.v*3.0*Math.sin(q*1.4) : 0) +
+        (S.magnetic ? S.v*1.6*q*q : 0);
+
+      x.lineTo(px,380-def);
+    }
+
+    x.stroke();
+    x.restore();
+
+  }else{
+    S.parts.length = 0;
+  }
+
+  /* Spinning wheel
+     IMPORTANT: it advances only when beam is ACTIVE.
+  */
+  if(S.wheel){
+    if(active){
+      S.t += 0.045;
+    }
+
+    x.save();
+    x.translate(875,380);
+    x.rotate(S.t);
+    x.strokeStyle = "#fff";
+    x.lineWidth = 3;
+
+    x.beginPath();
+    x.arc(0,0,55,0,Math.PI*2);
+    x.stroke();
+
+    for(let i=0;i<12;i++){
+      x.rotate(Math.PI/6);
+      x.beginPath();
+      x.moveTo(0,0);
+      x.lineTo(51,0);
+      x.stroke();
+    }
+
+    x.restore();
+
+    x.fillStyle = "#35ff72";
+    x.beginPath();
+    x.arc(875,380,5,0,Math.PI*2);
+    x.fill();
+
+    x.fillStyle = "#fff";
+    x.font = "11px system-ui";
+    x.fillText("MEASUREMENT WHEEL",820,470);
+  }
+}
+
+/* =========================================================
+   METRICS
+========================================================= */
+function metrics(){
+  const active = beamActive();
+
+  const speed = active
+    ? Math.sqrt(S.v*1000*2*1.602e-19/9.109e-31)
+    : 0;
+
+  const p = active
+    ? S.v*((S.electric?3:0)+(S.magnetic?1.6:0))
+    : 0;
+
+  const a = active
+    ? S.v*((S.electric?.7:0)+(S.magnetic?.45:0))
+    : 0;
+
+  $("speed").textContent =
+    speed ? speed.toExponential(2)+" m/s" : "0 m/s";
+
+  $("pos").textContent = p.toFixed(1)+" mm";
+  $("angle").textContent = a.toFixed(1)+"°";
+}
+
+/* =========================================================
+   ANIMATION LOOP
+========================================================= */
+function loop(){
+  draw();
+  metrics();
+  requestAnimationFrame(loop);
+}
+
+status();
+updateZoom();
+loop();
+</script>
+  <script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const splash = document.getElementById("splashScreen");
+    const progress = document.querySelector(".loading-progress");
+
+    let startTime = Date.now();
+    const duration = 10000; // 10 seconds
+
+    function updateProgress() {
+
+        const elapsed = Date.now() - startTime;
+        const percentage = Math.min(
+            (elapsed / duration) * 100,
+            100
+        );
+
+        progress.style.width = percentage + "%";
+
+        if (percentage < 100) {
+            requestAnimationFrame(updateProgress);
+        } else {
+
+            // Wait until exactly 10 seconds
+            setTimeout(() => {
+
+                splash.classList.add("hide");
+
+                // Remove splash from page after animation
+                setTimeout(() => {
+                    splash.remove();
+                }, 800);
+
+            }, 100);
+        }
+    }
+
+    updateProgress();
+
+});
+</script>
+</body>
+</html>
